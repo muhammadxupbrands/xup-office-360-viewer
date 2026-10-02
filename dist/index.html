@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0d1012" />
   <meta name="description" content="Explore the new XUP office interior." />
   <title>XUP Office — Interior Viewer</title>
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%23101417'/%3E%3Cpath d='M14 15h11l7 13 7-13h11L37 38v11H27V38z' fill='%23d7e92b'/%3E%3C/svg%3E" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%23101417'/%3E%3Cpath d='M15 15h10l7 12 7-12h10L38 32l11 17H39l-7-12-7 12H15l11-17z' fill='%23d7e92b'/%3E%3C/svg%3E" />
   <style>
     :root { color-scheme: dark; --acid:#d6e725; --ink:#eef0eb; --muted:#b9bdb6; --panel:rgba(13,16,18,.75); }
     * { box-sizing:border-box; }
@@ -49,17 +49,7 @@
     .hotspot small { display:block; margin-top:2px; color:var(--muted); font-size:.65rem; }
     .auto { height:42px; padding:0 14px; border-radius:24px; font-size:.73rem; font-weight:700; letter-spacing:.04em; }
     .auto.active { color:#101410; border-color:var(--acid); background:var(--acid); }
-    .point-panel { position:absolute; z-index:6; left:50%; bottom:92px; width:min(360px,calc(100vw - 40px)); padding:14px; transform:translateX(-50%); border:1px solid rgba(214,231,37,.8); background:rgba(13,16,18,.92); box-shadow:0 12px 32px rgba(0,0,0,.35); }
-    .point-panel strong { display:block; margin-bottom:4px; font-size:.82rem; }
-    .point-panel p { margin:0 0 10px; color:var(--muted); font-size:.72rem; line-height:1.4; }
-    .point-label { width:100%; height:36px; padding:0 10px; border:1px solid rgba(255,255,255,.26); background:#171b1d; color:var(--ink); font:inherit; font-size:.78rem; }
-    .point-coordinates { display:block; margin-top:10px; color:var(--acid); font-family:Consolas, monospace; font-size:.72rem; }
-    .point-submit { width:100%; height:36px; margin-top:10px; border-color:var(--acid); color:#101410; background:var(--acid); font-size:.75rem; font-weight:800; }
-    .point-submit:disabled { cursor:not-allowed; border-color:rgba(255,255,255,.18); color:rgba(255,255,255,.5); background:rgba(255,255,255,.1); }
-    .point-status { margin:8px 0 0; color:var(--muted); font-size:.69rem; line-height:1.35; }
-    .point-mode { color:#101410; border-color:var(--acid); background:var(--acid); }
-    .viewer.marking { cursor:crosshair; }
-    body.focus-view .topbar, body.focus-view .scene-pill, body.focus-view .drawer, body.focus-view .hotspots, body.focus-view .point-panel, body.focus-view .bottom { display:none !important; }
+    body.focus-view .topbar, body.focus-view .scene-pill, body.focus-view .drawer, body.focus-view .hotspots, body.focus-view .bottom { display:none !important; }
     .scene-thumb { width:74px; height:48px; object-fit:cover; }
     .scene-item span { display:block; font-size:.72rem; color:var(--muted); margin-top:4px; }
     @media (max-width:680px) { .topbar { padding-top:18px; } .instruction { display:none; } .bottom { flex-direction:column; align-items:stretch; gap:14px; } .directions { display:grid; grid-template-columns:repeat(2,1fr); max-width:none; } .direction { min-width:0; } .controls { align-self:flex-end; } .scene-pill { bottom:auto; top:76px; } }
@@ -83,13 +73,6 @@
       <button class="scene-item" data-scene="4"><img class="scene-thumb" src="assets/360_Render5.webp" alt="" /><div>05 — Huddle Room<span>Small-team meetings</span></div></button>
     </aside>
     <div class="hotspots" id="hotspots" aria-live="polite"></div>
-    <section class="point-panel" id="pointPanel" hidden aria-live="polite">
-      <strong>Point selected</strong><p>Name it, then send me the scene and coordinates below to add it permanently.</p>
-      <input class="point-label" id="pointLabel" maxlength="70" placeholder="Label, e.g. Boardroom entrance" />
-      <output class="point-coordinates" id="pointCoordinates"></output>
-      <button class="point-submit" id="submitPoint" disabled>Submit point</button>
-      <p class="point-status" id="pointStatus"></p>
-    </section>
     <div class="bottom">
       <nav class="directions" aria-label="Jump to a viewpoint">
         <button class="direction" data-yaw="-105"><strong>West</strong>Lounge</button>
@@ -97,7 +80,7 @@
         <button class="direction" data-yaw="78"><strong>East</strong>Meeting room</button>
         <button class="direction" data-yaw="155"><strong>South</strong>Reception</button>
       </nav>
-      <div class="controls"><button class="auto" id="fullScreen" aria-pressed="false">Full screen</button><button class="auto" id="markPoint" aria-pressed="false" hidden>Mark a point</button><button class="auto" id="autoRotate" aria-pressed="false">Auto rotate</button><button class="round" id="zoomOut" aria-label="Zoom out">−</button><button class="round" id="reset" aria-label="Reset view">⌾</button><button class="round" id="zoomIn" aria-label="Zoom in">+</button></div>
+      <div class="controls"><button class="auto" id="fullScreen" aria-pressed="false">Full screen</button><button class="auto" id="autoRotate" aria-pressed="false">Auto rotate</button><button class="round" id="zoomOut" aria-label="Zoom out">−</button><button class="round" id="reset" aria-label="Reset view">⌾</button><button class="round" id="zoomIn" aria-label="Zoom in">+</button></div>
     </div>
   </main>
   <script>
@@ -133,7 +116,7 @@
       ]}
     ];
     let currentScene=0;
-    const buttons=[...document.querySelectorAll('.direction')], hotspotLayer=document.getElementById('hotspots'), autoButton=document.getElementById('autoRotate'), fullScreenButton=document.getElementById('fullScreen'), markButton=document.getElementById('markPoint'), pointPanel=document.getElementById('pointPanel'), pointLabel=document.getElementById('pointLabel'), pointCoordinates=document.getElementById('pointCoordinates'), submitPointButton=document.getElementById('submitPoint'), pointStatus=document.getElementById('pointStatus'); let yaw=0, pitch=0, fov=70, targetYaw=0, targetPitch=0, targetFov=70, autoRotate=false, pointMode=false, pickedPoint=null, dragging=false, startX, startY, originYaw, originPitch, dragAxis, animationFrame;
+    const buttons=[...document.querySelectorAll('.direction')], hotspotLayer=document.getElementById('hotspots'), autoButton=document.getElementById('autoRotate'), fullScreenButton=document.getElementById('fullScreen'); let yaw=0, pitch=0, fov=70, targetYaw=0, targetPitch=0, targetFov=70, autoRotate=false, dragging=false, startX, startY, originYaw, originPitch, dragAxis, animationFrame;
     const vertex=`attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}`;
     const fragment=`precision highp float;uniform sampler2D pano;uniform vec2 resolution;uniform float yaw;uniform float pitch;uniform float fov;const float PI=3.141592653589793;void main(){vec2 screen=(gl_FragCoord.xy/resolution-.5)*2.;screen.x*=resolution.x/resolution.y;vec3 ray=normalize(vec3(screen,1./tan(radians(fov)*.5)));float cp=cos(pitch),sp=sin(pitch);ray.yz=mat2(cp,-sp,sp,cp)*ray.yz;float cy=cos(yaw),sy=sin(yaw);ray.xz=mat2(cy,-sy,sy,cy)*ray.xz;float longitude=atan(ray.x,ray.z);float latitude=asin(clamp(ray.y,-1.,1.));vec2 uv=vec2(longitude/(2.*PI)+.5,.5-latitude/PI);gl_FragColor=texture2D(pano,uv);}`;
     function shader(type, source){const s=gl.createShader(type);gl.shaderSource(s,source);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(s));return s}
@@ -150,17 +133,13 @@
     function setAutoRotate(enabled){autoRotate=enabled;autoButton.classList.toggle('active',enabled);autoButton.setAttribute('aria-pressed',String(enabled));autoButton.textContent=enabled?'Pause rotation':'Auto rotate';if(enabled)buttons.forEach(button=>button.classList.remove('active'))}
     function setFocusView(enabled){document.body.classList.toggle('focus-view',enabled);fullScreenButton.setAttribute('aria-pressed',String(enabled));fullScreenButton.textContent=enabled?'Exit full screen':'Full screen';render()}
     async function toggleFullScreen(){if(document.fullscreenElement){await document.exitFullscreen();return}setAutoRotate(true);setFocusView(true);try{await viewer.requestFullscreen()}catch(error){/* The overlay-free view still works when browser fullscreen is unavailable. */}}
-    function setPointMode(enabled){pointMode=enabled;viewer.classList.toggle('marking',enabled);markButton.classList.toggle('point-mode',enabled);markButton.setAttribute('aria-pressed',String(enabled));markButton.textContent=enabled?'Click the panorama':'Mark a point';if(enabled){setAutoRotate(false);pointPanel.hidden=true;pointLabel.value='';pointStatus.textContent='';submitPointButton.disabled=true}}
-    function showPointCoordinates(){if(!pickedPoint)return;const label=pointLabel.value.trim()||'Untitled point';pointCoordinates.textContent=`${label} · Scene ${String(pickedPoint.scene).padStart(2,'0')} · heading ${pickedPoint.lon}° · elevation ${pickedPoint.lat}°`}
-    function capturePoint(event){const bounds=canvas.getBoundingClientRect(),aspect=bounds.width/bounds.height,focal=1/Math.tan(fov*Math.PI/360),screenX=((event.clientX-bounds.left)/bounds.width*2-1)*aspect,screenY=1-(event.clientY-bounds.top)/bounds.height*2;let x=screenX,y=screenY,z=focal;const length=Math.hypot(x,y,z);x/=length;y/=length;z/=length;const pitchRad=pitch*Math.PI/180,cp=Math.cos(pitchRad),sp=Math.sin(pitchRad),pitchedY=cp*y+sp*z,pitchedZ=-sp*y+cp*z;y=pitchedY;z=pitchedZ;const yawRad=yaw*Math.PI/180,cy=Math.cos(yawRad),sy=Math.sin(yawRad),worldX=cy*x+sy*z,worldZ=-sy*x+cy*z,lon=Math.round(Math.atan2(worldX,worldZ)*180/Math.PI),lat=Math.round(Math.asin(Math.max(-1,Math.min(1,y)))*180/Math.PI);pickedPoint={scene:currentScene+1,lon,lat};showPointCoordinates();pointPanel.hidden=false;setPointMode(false);submitPointButton.disabled=false}
-    async function submitPoint(){if(!pickedPoint)return;submitPointButton.disabled=true;pointStatus.textContent='Submitting point…';try{const response=await fetch('/api/points',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...pickedPoint,label:pointLabel.value.trim()||'Untitled point'})});if(!response.ok)throw new Error('Submission unavailable');pointStatus.textContent='Submitted to the local point inbox. Tell me when you are ready and I can add it to the tour code.'}catch(error){pointStatus.textContent='Open the local review link to submit points; file previews cannot save submissions.';submitPointButton.disabled=false}}
     function selectScene(index){const scene=scenes[index];currentScene=index;setAutoRotate(false);canvas.classList.remove('ready');fallback.removeAttribute('aria-hidden');fallback.src=scene.src;fallback.alt=scene.alt;source.src=scene.src;document.getElementById('sceneName').textContent=scene.title;document.getElementById('sceneNumber').textContent=String(index+1).padStart(2,'0');document.querySelectorAll('.scene-item').forEach(item=>item.classList.toggle('active',+item.dataset.scene===index));yaw=targetYaw=0;pitch=targetPitch=0;fov=targetFov=70;choose(0);buildHotspots()}
     buttons.forEach(button=>button.addEventListener('click',()=>choose(button.dataset.yaw)));
-    viewer.addEventListener('pointerdown',event=>{if(event.target.closest('button'))return;if(pointMode){capturePoint(event);return}setAutoRotate(false);const bounds=viewer.getBoundingClientRect(),edge=Math.min(event.clientX-bounds.left,bounds.right-event.clientX);dragging=true;dragAxis=edge<bounds.width*.18?'horizontal':null;viewer.classList.add('dragging');viewer.setPointerCapture(event.pointerId);startX=event.clientX;startY=event.clientY;originYaw=targetYaw;originPitch=targetPitch});
+    viewer.addEventListener('pointerdown',event=>{if(event.target.closest('button'))return;setAutoRotate(false);const bounds=viewer.getBoundingClientRect(),edge=Math.min(event.clientX-bounds.left,bounds.right-event.clientX);dragging=true;dragAxis=edge<bounds.width*.18?'horizontal':null;viewer.classList.add('dragging');viewer.setPointerCapture(event.pointerId);startX=event.clientX;startY=event.clientY;originYaw=targetYaw;originPitch=targetPitch});
     viewer.addEventListener('pointermove',event=>{if(!dragging)return;const dx=event.clientX-startX,dy=event.clientY-startY;if(!dragAxis&&Math.hypot(dx,dy)>7)dragAxis=Math.abs(dx)>=Math.abs(dy)?'horizontal':'vertical';if(dragAxis==='horizontal')targetYaw=originYaw-dx*.105;if(dragAxis==='vertical')targetPitch=Math.max(-85,Math.min(85,originPitch-dy*.105));buttons.forEach(b=>b.classList.remove('active'))});
     viewer.addEventListener('pointerup',()=>{dragging=false;viewer.classList.remove('dragging')});
     viewer.addEventListener('wheel',event=>{event.preventDefault();targetFov=Math.max(42,Math.min(92,targetFov+event.deltaY*.025))},{passive:false});
-    pointLabel.addEventListener('input',showPointCoordinates);submitPointButton.onclick=submitPoint;fullScreenButton.onclick=toggleFullScreen;document.addEventListener('fullscreenchange',()=>setFocusView(Boolean(document.fullscreenElement)));document.addEventListener('keydown',event=>{if(event.key==='Escape')setFocusView(false)});markButton.onclick=()=>setPointMode(!pointMode);autoButton.onclick=()=>setAutoRotate(!autoRotate);document.getElementById('zoomIn').onclick=()=>{targetFov=Math.max(42,targetFov-5)};document.getElementById('zoomOut').onclick=()=>{targetFov=Math.min(92,targetFov+5)};document.getElementById('reset').onclick=()=>{targetFov=70;choose(0)};window.addEventListener('resize',render);
+    fullScreenButton.onclick=toggleFullScreen;document.addEventListener('fullscreenchange',()=>setFocusView(Boolean(document.fullscreenElement)));document.addEventListener('keydown',event=>{if(event.key==='Escape')setFocusView(false)});autoButton.onclick=()=>setAutoRotate(!autoRotate);document.getElementById('zoomIn').onclick=()=>{targetFov=Math.max(42,targetFov-5)};document.getElementById('zoomOut').onclick=()=>{targetFov=Math.min(92,targetFov+5)};document.getElementById('reset').onclick=()=>{targetFov=70;choose(0)};window.addEventListener('resize',render);
     const toggle=document.getElementById('sceneToggle'), drawer=document.getElementById('sceneDrawer'); toggle.onclick=()=>{const open=drawer.classList.toggle('open');toggle.setAttribute('aria-expanded',open)};
     document.querySelectorAll('.scene-item').forEach(item=>item.onclick=()=>{selectScene(+item.dataset.scene);drawer.classList.remove('open');toggle.setAttribute('aria-expanded','false')});
     selectScene(0);
