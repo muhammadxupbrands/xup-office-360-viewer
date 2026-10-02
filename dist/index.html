@@ -13,8 +13,10 @@
     body { margin:0; overflow:hidden; background:#101314; color:var(--ink); font-family:Arial, Helvetica, sans-serif; }
     .viewer { position:relative; width:100vw; height:100svh; overflow:hidden; background:#181b1d; touch-action:none; cursor:grab; }
     .viewer.dragging { cursor:grabbing; }
-    .panorama { position:absolute; inset:-9% -14%; width:128%; height:118%; object-fit:cover; object-position:50% 50%; transform:scale(1.02); will-change:object-position; user-select:none; pointer-events:none; }
-    .vignette { position:absolute; inset:0; pointer-events:none; background:linear-gradient(90deg,rgba(0,0,0,.5),transparent 27%,transparent 70%,rgba(0,0,0,.42)),linear-gradient(0deg,rgba(0,0,0,.38),transparent 28%); }
+    .fallback, .panorama { position:absolute; inset:0; width:100%; height:100%; display:block; }
+    .fallback { object-fit:cover; object-position:50% 50%; }
+    .panorama { opacity:0; transition:opacity .35s ease; }
+    .panorama.ready { opacity:1; }
     .topbar { position:absolute; top:0; left:0; right:0; z-index:2; padding:28px clamp(20px,4vw,58px); display:flex; align-items:flex-start; justify-content:space-between; gap:24px; background:linear-gradient(180deg,rgba(0,0,0,.48),transparent); }
     .brand { display:flex; align-items:center; gap:11px; font-size:.76rem; letter-spacing:.16em; font-weight:700; }
     .mark { display:grid; place-items:center; width:30px; height:30px; background:var(--acid); color:#121512; font-size:.8rem; letter-spacing:-.06em; font-weight:900; }
@@ -38,6 +40,7 @@
     .drawer h2 { margin:0 0 5px; font-size:1rem; }
     .drawer p { margin:0 0 16px; color:var(--muted); font-size:.78rem; line-height:1.5; }
     .scene-item { display:flex; width:100%; gap:12px; padding:9px; text-align:left; }
+    .scene-item.active { border-color:var(--acid); background:rgba(214,231,37,.12); }
     .scene-thumb { width:74px; height:48px; object-fit:cover; }
     .scene-item span { display:block; font-size:.72rem; color:var(--muted); margin-top:4px; }
     @media (max-width:680px) { .topbar { padding-top:18px; } .instruction { display:none; } .bottom { flex-direction:column; align-items:stretch; gap:14px; } .directions { display:grid; grid-template-columns:repeat(2,1fr); max-width:none; } .direction { min-width:0; } .controls { align-self:flex-end; } .scene-pill { bottom:auto; top:76px; } }
@@ -45,41 +48,59 @@
 </head>
 <body>
   <main class="viewer" id="viewer" aria-label="Interactive XUP office interior panorama">
-    <img class="panorama" id="panorama" src="assets/360_Render1.jpg" alt="Panoramic render of the new XUP office interior" />
-    <div class="vignette"></div>
+    <img class="fallback" id="fallback" src="assets/360_Render1.png" alt="Panoramic render of the open workspace" />
+    <canvas class="panorama" id="panorama" aria-label="Interactive 360 degree render of the new XUP office interior"></canvas>
     <header class="topbar">
-      <div><div class="brand"><span class="mark">XUP</span> OFFICE INTERIOR</div><div class="scene-name">Open workspace</div></div>
-      <div class="instruction"><span class="hand"></span> Drag to look around</div>
+      <div><div class="brand"><span class="mark">XUP</span> OFFICE INTERIOR</div><div class="scene-name" id="sceneName">Open workspace</div></div>
+      <div class="instruction"><span class="hand"></span> Drag to look in any direction</div>
     </header>
-    <button class="scene-pill" id="sceneToggle" aria-expanded="false" aria-controls="sceneDrawer"><span class="scene-dot">01</span> View scenes</button>
+    <button class="scene-pill" id="sceneToggle" aria-expanded="false" aria-controls="sceneDrawer"><span class="scene-dot" id="sceneNumber">01</span> View scenes</button>
     <aside class="drawer" id="sceneDrawer" aria-label="Available interior scenes">
-      <h2>Office scenes</h2><p>More renders placed in the assets folder can be added here as new stops in the tour.</p>
-      <button class="scene-item" data-scene="0"><img class="scene-thumb" src="assets/360_Render1.jpg" alt="" /><div>01 — Open workspace<span>Current scene</span></div></button>
+      <h2>Office scenes</h2><p>Choose a point of view to explore the new office.</p>
+      <button class="scene-item active" data-scene="0"><img class="scene-thumb" src="assets/360_Render1.png" alt="" /><div>01 — Open workspace<span>Workstations</span></div></button>
+      <button class="scene-item" data-scene="1"><img class="scene-thumb" src="assets/360_Render2.png" alt="" /><div>02 — Reception & entry<span>Arrival area</span></div></button>
+      <button class="scene-item" data-scene="2"><img class="scene-thumb" src="assets/360_Render3.png" alt="" /><div>03 — Work lounge<span>Collaboration area</span></div></button>
     </aside>
     <div class="bottom">
       <nav class="directions" aria-label="Jump to a viewpoint">
-        <button class="direction" data-position="12"><strong>West</strong>Lounge</button>
-        <button class="direction active" data-position="50"><strong>North</strong>Think wall</button>
-        <button class="direction" data-position="74"><strong>East</strong>Meeting room</button>
-        <button class="direction" data-position="93"><strong>South</strong>Reception</button>
+        <button class="direction" data-yaw="-105"><strong>West</strong>Lounge</button>
+        <button class="direction active" data-yaw="0"><strong>North</strong>Think wall</button>
+        <button class="direction" data-yaw="78"><strong>East</strong>Meeting room</button>
+        <button class="direction" data-yaw="155"><strong>South</strong>Reception</button>
       </nav>
       <div class="controls"><button class="round" id="zoomOut" aria-label="Zoom out">−</button><button class="round" id="reset" aria-label="Reset view">⌾</button><button class="round" id="zoomIn" aria-label="Zoom in">+</button></div>
     </div>
   </main>
   <script>
-    const viewer=document.getElementById('viewer'), image=document.getElementById('panorama');
-    const buttons=[...document.querySelectorAll('.direction')]; let x=50, y=50, zoom=1.02, dragging=false, startX, startY, originX, originY;
-    function render(){ image.style.objectPosition=`${x}% ${y}%`; image.style.transform=`scale(${zoom})`; }
-    function choose(position){ x=+position; y=50; buttons.forEach(b=>b.classList.toggle('active',+b.dataset.position===x)); render(); }
-    buttons.forEach(button=>button.addEventListener('click',()=>choose(button.dataset.position)));
-    viewer.addEventListener('pointerdown',event=>{ if(event.target.closest('button')) return; dragging=true; viewer.classList.add('dragging'); viewer.setPointerCapture(event.pointerId); startX=event.clientX; startY=event.clientY; originX=x; originY=y; });
-    viewer.addEventListener('pointermove',event=>{ if(!dragging)return; x=Math.max(4,Math.min(96,originX-(event.clientX-startX)/7)); y=Math.max(20,Math.min(80,originY-(event.clientY-startY)/12)); buttons.forEach(b=>b.classList.remove('active')); render(); });
+    const viewer=document.getElementById('viewer'), canvas=document.getElementById('panorama'), fallback=document.getElementById('fallback'), gl=canvas.getContext('webgl');
+    const scenes=[
+      {title:'Open workspace',detail:'Workstations',src:'assets/360_Render1.png',alt:'360 degree view of the open workspace'},
+      {title:'Reception & entry',detail:'Arrival area',src:'assets/360_Render2.png',alt:'360 degree view of the reception and entry'},
+      {title:'Work lounge',detail:'Collaboration area',src:'assets/360_Render3.png',alt:'360 degree view of the work lounge'}
+    ];
+    let currentScene=0;
+    const buttons=[...document.querySelectorAll('.direction')]; let yaw=0, pitch=0, fov=70, targetYaw=0, targetPitch=0, targetFov=70, dragging=false, startX, startY, originYaw, originPitch, dragAxis, animationFrame;
+    const vertex=`attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}`;
+    const fragment=`precision highp float;uniform sampler2D pano;uniform vec2 resolution;uniform float yaw;uniform float pitch;uniform float fov;const float PI=3.141592653589793;void main(){vec2 screen=(gl_FragCoord.xy/resolution-.5)*2.;screen.x*=resolution.x/resolution.y;vec3 ray=normalize(vec3(screen,1./tan(radians(fov)*.5)));float cy=cos(yaw),sy=sin(yaw);ray.xz=mat2(cy,-sy,sy,cy)*ray.xz;float cp=cos(pitch),sp=sin(pitch);ray.yz=mat2(cp,-sp,sp,cp)*ray.yz;float longitude=atan(ray.x,ray.z);float latitude=asin(clamp(ray.y,-1.,1.));vec2 uv=vec2(longitude/(2.*PI)+.5,.5-latitude/PI);gl_FragColor=texture2D(pano,uv);}`;
+    function shader(type, source){const s=gl.createShader(type);gl.shaderSource(s,source);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(s));return s}
+    const program=gl.createProgram();gl.attachShader(program,shader(gl.VERTEX_SHADER,vertex));gl.attachShader(program,shader(gl.FRAGMENT_SHADER,fragment));gl.linkProgram(program);if(!gl.getProgramParameter(program,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(program));gl.useProgram(program);
+    const buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);const loc=gl.getAttribLocation(program,'p');gl.enableVertexAttribArray(loc);gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0);
+    const uniforms={resolution:gl.getUniformLocation(program,'resolution'),yaw:gl.getUniformLocation(program,'yaw'),pitch:gl.getUniformLocation(program,'pitch'),fov:gl.getUniformLocation(program,'fov')};
+    const texture=gl.createTexture(), source=new Image();source.onload=()=>{gl.bindTexture(gl.TEXTURE_2D,texture);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,source);if(gl.getError()===gl.NO_ERROR){canvas.classList.add('ready');fallback.setAttribute('aria-hidden','true');if(!animationFrame)animate()}};
+    function resize(){const ratio=Math.min(devicePixelRatio||1,2),w=canvas.clientWidth*ratio,h=canvas.clientHeight*ratio;if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;gl.viewport(0,0,w,h)}}
+    function render(){resize();gl.uniform2f(uniforms.resolution,canvas.width,canvas.height);gl.uniform1f(uniforms.yaw,yaw*Math.PI/180);gl.uniform1f(uniforms.pitch,pitch*Math.PI/180);gl.uniform1f(uniforms.fov,fov);gl.drawArrays(gl.TRIANGLES,0,3)}
+    function animate(){yaw+=(targetYaw-yaw)*.12;pitch+=(targetPitch-pitch)*.12;fov+=(targetFov-fov)*.14;render();animationFrame=requestAnimationFrame(animate)}
+    function choose(value){targetYaw=+value;targetPitch=0;buttons.forEach(b=>b.classList.toggle('active',+b.dataset.yaw===targetYaw))}
+    function selectScene(index){const scene=scenes[index];currentScene=index;canvas.classList.remove('ready');fallback.removeAttribute('aria-hidden');fallback.src=scene.src;fallback.alt=scene.alt;source.src=scene.src;document.getElementById('sceneName').textContent=scene.title;document.getElementById('sceneNumber').textContent=String(index+1).padStart(2,'0');document.querySelectorAll('.scene-item').forEach(item=>item.classList.toggle('active',+item.dataset.scene===index));yaw=targetYaw=0;pitch=targetPitch=0;fov=targetFov=70;choose(0)}
+    buttons.forEach(button=>button.addEventListener('click',()=>choose(button.dataset.yaw)));
+    viewer.addEventListener('pointerdown',event=>{if(event.target.closest('button'))return;const bounds=viewer.getBoundingClientRect(),edge=Math.min(event.clientX-bounds.left,bounds.right-event.clientX);dragging=true;dragAxis=edge<bounds.width*.18?'horizontal':null;viewer.classList.add('dragging');viewer.setPointerCapture(event.pointerId);startX=event.clientX;startY=event.clientY;originYaw=targetYaw;originPitch=targetPitch});
+    viewer.addEventListener('pointermove',event=>{if(!dragging)return;const dx=event.clientX-startX,dy=event.clientY-startY;if(!dragAxis&&Math.hypot(dx,dy)>7)dragAxis=Math.abs(dx)>=Math.abs(dy)?'horizontal':'vertical';if(dragAxis==='horizontal')targetYaw=originYaw-dx*.105;if(dragAxis==='vertical')targetPitch=Math.max(-85,Math.min(85,originPitch-dy*.105));buttons.forEach(b=>b.classList.remove('active'))});
     viewer.addEventListener('pointerup',()=>{dragging=false;viewer.classList.remove('dragging')});
-    viewer.addEventListener('wheel',event=>{event.preventDefault();zoom=Math.max(1.02,Math.min(1.55,zoom-event.deltaY*.0007));render()},{passive:false});
-    document.getElementById('zoomIn').onclick=()=>{zoom=Math.min(1.55,zoom+.08);render()}; document.getElementById('zoomOut').onclick=()=>{zoom=Math.max(1.02,zoom-.08);render()}; document.getElementById('reset').onclick=()=>{x=50;y=50;zoom=1.02;choose(50);render()};
+    viewer.addEventListener('wheel',event=>{event.preventDefault();targetFov=Math.max(42,Math.min(92,targetFov+event.deltaY*.025))},{passive:false});
+    document.getElementById('zoomIn').onclick=()=>{targetFov=Math.max(42,targetFov-5)};document.getElementById('zoomOut').onclick=()=>{targetFov=Math.min(92,targetFov+5)};document.getElementById('reset').onclick=()=>{targetFov=70;choose(0)};window.addEventListener('resize',render);
     const toggle=document.getElementById('sceneToggle'), drawer=document.getElementById('sceneDrawer'); toggle.onclick=()=>{const open=drawer.classList.toggle('open');toggle.setAttribute('aria-expanded',open)};
-    document.querySelector('.scene-item').onclick=()=>{drawer.classList.remove('open');toggle.setAttribute('aria-expanded','false');document.getElementById('reset').click()};
-    render();
+    document.querySelectorAll('.scene-item').forEach(item=>item.onclick=()=>{selectScene(+item.dataset.scene);drawer.classList.remove('open');toggle.setAttribute('aria-expanded','false')});
+    selectScene(0);
   </script>
 </body>
 </html>
