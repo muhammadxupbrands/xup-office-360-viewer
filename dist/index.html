@@ -77,7 +77,9 @@
       <h2>Office scenes</h2><p>Choose a point of view to explore the new office.</p>
       <button class="scene-item active" data-scene="0"><img class="scene-thumb" src="assets/360_Render1.webp" alt="" /><div>01 — Open workspace<span>Workstations</span></div></button>
       <button class="scene-item" data-scene="1"><img class="scene-thumb" src="assets/360_Render2.webp" alt="" /><div>02 — Reception & entry<span>Arrival area</span></div></button>
-      <button class="scene-item" data-scene="2"><img class="scene-thumb" src="assets/360_Render3.png" alt="" /><div>03 — Cozy Corner<span>Relaxed seating</span></div></button>
+      <button class="scene-item" data-scene="2"><img class="scene-thumb" src="assets/360_Render3.webp" alt="" /><div>03 — Cozy Corner<span>Relaxed seating</span></div></button>
+      <button class="scene-item" data-scene="3"><img class="scene-thumb" src="assets/360_Render4.webp" alt="" /><div>04 — Calling Pod<span>Private calls</span></div></button>
+      <button class="scene-item" data-scene="4"><img class="scene-thumb" src="assets/360_Render5.webp" alt="" /><div>05 — Huddle Room<span>Small-team meetings</span></div></button>
     </aside>
     <div class="hotspots" id="hotspots" aria-live="polite"></div>
     <section class="point-panel" id="pointPanel" hidden aria-live="polite">
@@ -103,15 +105,27 @@
       {title:'Open workspace',detail:'Workstations',src:'assets/360_Render1.webp',alt:'360 degree view of the open workspace',hotspots:[
         {lon:0,lat:-10,label:'Open workspace',detail:'Flexible team desks'},
         {lon:-158,lat:-5,label:'Cozy Corner',detail:'Go to scene 03',target:2},
-        {lon:139,lat:-3,label:'Reception and entry',detail:'Go to scene 02',target:1}
+        {lon:139,lat:-3,label:'Reception and entry',detail:'Go to scene 02',target:1},
+        {lon:117,lat:-1,label:'Calling Pod',detail:'Go to scene 04',target:3},
+        {lon:67,lat:-6,label:'Huddle Room',detail:'Go to scene 05',target:4}
       ]},
       {title:'Reception & entry',detail:'Arrival area',src:'assets/360_Render2.webp',alt:'360 degree view of the reception and entry',hotspots:[
         {lon:-26,lat:-2,label:'Cozy Corner',detail:'Go to scene 03',target:2},
-        {lon:33,lat:-1,label:'Open workspace',detail:'Go to scene 01',target:0}
+        {lon:33,lat:-1,label:'Open workspace',detail:'Go to scene 01',target:0},
+        {lon:60,lat:-4,label:'Huddle Room',detail:'Go to scene 05',target:4},
+        {lon:94,lat:-4,label:'Calling Pod',detail:'Go to scene 04',target:3}
       ]},
-      {title:'Cozy Corner',detail:'Relaxed seating',src:'assets/360_Render3.png',alt:'360 degree view of the cozy corner',hotspots:[
+      {title:'Cozy Corner',detail:'Relaxed seating',src:'assets/360_Render3.webp',alt:'360 degree view of the cozy corner',hotspots:[
         {lon:0,lat:-7,label:'Open workspace',detail:'Go to scene 01',target:0},
         {lon:61,lat:0,label:'Reception',detail:'Go to scene 02',target:1}
+      ]},
+      {title:'Calling Pod',detail:'Private calls',src:'assets/360_Render4.webp',alt:'360 degree view of the calling pod',hotspots:[
+      ]},
+      {title:'Huddle Room',detail:'Small-team meetings',src:'assets/360_Render5.webp',alt:'360 degree view of the huddle room',hotspots:[
+        {lon:4,lat:0,label:'Open workspace',detail:'Go to scene 01',target:0},
+        {lon:-49,lat:-3,label:'Cozy Corner',detail:'Go to scene 03',target:2},
+        {lon:-78,lat:-1,label:'Reception',detail:'Go to scene 02',target:1},
+        {lon:-101,lat:-1,label:'Calling Pod',detail:'Go to scene 04',target:3}
       ]}
     ];
     let currentScene=0;
