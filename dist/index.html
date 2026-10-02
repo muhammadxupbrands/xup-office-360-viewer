@@ -30,7 +30,7 @@
     .direction strong { display:block; color:inherit; font-size:.66rem; letter-spacing:.13em; text-transform:uppercase; margin-bottom:4px; }
     .direction:hover,.direction:focus-visible { border-color:var(--acid); color:var(--ink); outline:none; }
     .direction.active { background:var(--acid); border-color:var(--acid); color:#111510; }
-    .controls { display:flex; align-items:center; gap:8px; }
+    .controls { display:flex; align-items:center; justify-content:flex-end; gap:8px; flex-wrap:wrap; }
     .round { width:42px; height:42px; border-radius:50%; font-size:1.35rem; line-height:1; }
     .round:hover,.round:focus-visible { border-color:var(--acid); outline:none; }
     .scene-pill { position:absolute; z-index:3; left:50%; transform:translateX(-50%); bottom:28px; display:flex; align-items:center; gap:11px; padding:8px 13px 8px 9px; border:1px solid rgba(255,255,255,.27); background:var(--panel); backdrop-filter:blur(12px); color:var(--ink); font-size:.76rem; }
@@ -57,6 +57,8 @@
     @keyframes pinPulse { 0%,32% { transform:scale(.55); opacity:.8; } 72%,100% { transform:scale(1.35); opacity:0; } }
     .auto { height:42px; padding:0 14px; border-radius:24px; font-size:.73rem; font-weight:700; letter-spacing:.04em; }
     .auto.active { color:#101410; border-color:var(--acid); background:var(--acid); }
+    .image-picker { display:none; }
+    body.custom-panorama .directions { display:none; }
     body.focus-view .topbar, body.focus-view .scene-pill, body.focus-view .drawer, body.focus-view .hotspots, body.focus-view .bottom { display:none !important; }
     .scene-thumb { width:74px; height:48px; object-fit:cover; }
     .scene-item span { display:block; font-size:.72rem; color:var(--muted); margin-top:4px; }
@@ -88,7 +90,7 @@
         <button class="direction" data-yaw="78"><strong>East</strong>Meeting room</button>
         <button class="direction" data-yaw="155"><strong>South</strong>Reception</button>
       </nav>
-      <div class="controls"><button class="auto" id="fullScreen" aria-pressed="false">Full screen</button><button class="auto" id="autoRotate" aria-pressed="false">Auto rotate</button><button class="round" id="zoomOut" aria-label="Zoom out">−</button><button class="round" id="reset" aria-label="Reset view">⌾</button><button class="round" id="zoomIn" aria-label="Zoom in">+</button></div>
+      <div class="controls"><input class="image-picker" id="imagePicker" type="file" accept="image/jpeg,image/png,image/webp,image/avif" /><button class="auto" id="openImage">Open 360 image</button><button class="auto" id="fullScreen" aria-pressed="false">Full screen</button><button class="auto" id="autoRotate" aria-pressed="false">Auto rotate</button><button class="round" id="zoomOut" aria-label="Zoom out">−</button><button class="round" id="reset" aria-label="Reset view">⌾</button><button class="round" id="zoomIn" aria-label="Zoom in">+</button></div>
     </div>
   </main>
   <script>
@@ -123,8 +125,8 @@
         {lon:-101,lat:-1,label:'Calling Pod',detail:'Go to scene 04',target:3}
       ]}
     ];
-    let currentScene=0;
-    const buttons=[...document.querySelectorAll('.direction')], hotspotLayer=document.getElementById('hotspots'), autoButton=document.getElementById('autoRotate'), fullScreenButton=document.getElementById('fullScreen'); let yaw=0, pitch=0, fov=70, targetYaw=0, targetPitch=0, targetFov=70, autoRotate=false, dragging=false, startX, startY, originYaw, originPitch, dragAxis, animationFrame;
+    let currentScene=0, customPanoramaUrl='';
+    const buttons=[...document.querySelectorAll('.direction')], hotspotLayer=document.getElementById('hotspots'), autoButton=document.getElementById('autoRotate'), fullScreenButton=document.getElementById('fullScreen'), imagePicker=document.getElementById('imagePicker'), openImageButton=document.getElementById('openImage'), sceneName=document.getElementById('sceneName'), sceneNumber=document.getElementById('sceneNumber'); let yaw=0, pitch=0, fov=70, targetYaw=0, targetPitch=0, targetFov=70, autoRotate=false, dragging=false, startX, startY, originYaw, originPitch, dragAxis, animationFrame;
     const vertex=`attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}`;
     const fragment=`precision highp float;uniform sampler2D pano;uniform vec2 resolution;uniform float yaw;uniform float pitch;uniform float fov;const float PI=3.141592653589793;void main(){vec2 screen=(gl_FragCoord.xy/resolution-.5)*2.;screen.x*=resolution.x/resolution.y;vec3 ray=normalize(vec3(screen,1./tan(radians(fov)*.5)));float cp=cos(pitch),sp=sin(pitch);ray.yz=mat2(cp,-sp,sp,cp)*ray.yz;float cy=cos(yaw),sy=sin(yaw);ray.xz=mat2(cy,-sy,sy,cy)*ray.xz;float longitude=atan(ray.x,ray.z);float latitude=asin(clamp(ray.y,-1.,1.));vec2 uv=vec2(longitude/(2.*PI)+.5,.5-latitude/PI);gl_FragColor=texture2D(pano,uv);}`;
     function shader(type, source){const s=gl.createShader(type);gl.shaderSource(s,source);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(s));return s}
@@ -141,13 +143,16 @@
     function setAutoRotate(enabled){autoRotate=enabled;autoButton.classList.toggle('active',enabled);autoButton.setAttribute('aria-pressed',String(enabled));autoButton.textContent=enabled?'Pause rotation':'Auto rotate';if(enabled)buttons.forEach(button=>button.classList.remove('active'))}
     function setFocusView(enabled){document.body.classList.toggle('focus-view',enabled);fullScreenButton.setAttribute('aria-pressed',String(enabled));fullScreenButton.textContent=enabled?'Exit full screen':'Full screen';render()}
     async function toggleFullScreen(){if(document.fullscreenElement){await document.exitFullscreen();return}setAutoRotate(true);setFocusView(true);try{await viewer.requestFullscreen()}catch(error){/* The overlay-free view still works when browser fullscreen is unavailable. */}}
-    function selectScene(index){const scene=scenes[index];currentScene=index;setAutoRotate(false);canvas.classList.remove('ready');fallback.removeAttribute('aria-hidden');fallback.src=scene.src;fallback.alt=scene.alt;source.src=scene.src;document.getElementById('sceneName').textContent=scene.title;document.getElementById('sceneNumber').textContent=String(index+1).padStart(2,'0');document.querySelectorAll('.scene-item').forEach(item=>item.classList.toggle('active',+item.dataset.scene===index));yaw=targetYaw=0;pitch=targetPitch=0;fov=targetFov=70;choose(0);buildHotspots()}
+    function releaseCustomPanorama(){if(customPanoramaUrl){URL.revokeObjectURL(customPanoramaUrl);customPanoramaUrl=''}}
+    function loadPanorama(src,alt){canvas.classList.remove('ready');fallback.removeAttribute('aria-hidden');fallback.src=src;fallback.alt=alt;source.src=src}
+    function selectScene(index){const scene=scenes[index];releaseCustomPanorama();document.body.classList.remove('custom-panorama');currentScene=index;setAutoRotate(false);loadPanorama(scene.src,scene.alt);sceneName.textContent=scene.title;sceneNumber.textContent=String(index+1).padStart(2,'0');document.querySelectorAll('.scene-item').forEach(item=>item.classList.toggle('active',+item.dataset.scene===index));yaw=targetYaw=0;pitch=targetPitch=0;fov=targetFov=70;choose(0);buildHotspots()}
+    function openLocalPanorama(file){if(!file||(file.type&&!file.type.startsWith('image/')))return;releaseCustomPanorama();customPanoramaUrl=URL.createObjectURL(file);document.body.classList.add('custom-panorama');currentScene=-1;setAutoRotate(false);loadPanorama(customPanoramaUrl,`Local panorama: ${file.name}`);sceneName.textContent=file.name.replace(/\.[^/.]+$/,'')||'Local panorama';sceneNumber.textContent='↗';document.querySelectorAll('.scene-item').forEach(item=>item.classList.remove('active'));hotspotLayer.replaceChildren();yaw=targetYaw=0;pitch=targetPitch=0;fov=targetFov=70;choose(0)}
     buttons.forEach(button=>button.addEventListener('click',()=>choose(button.dataset.yaw)));
     viewer.addEventListener('pointerdown',event=>{if(event.target.closest('button'))return;setAutoRotate(false);const bounds=viewer.getBoundingClientRect(),edge=Math.min(event.clientX-bounds.left,bounds.right-event.clientX);dragging=true;dragAxis=edge<bounds.width*.18?'horizontal':null;viewer.classList.add('dragging');viewer.setPointerCapture(event.pointerId);startX=event.clientX;startY=event.clientY;originYaw=targetYaw;originPitch=targetPitch});
     viewer.addEventListener('pointermove',event=>{if(!dragging)return;const dx=event.clientX-startX,dy=event.clientY-startY;if(!dragAxis&&Math.hypot(dx,dy)>7)dragAxis=Math.abs(dx)>=Math.abs(dy)?'horizontal':'vertical';if(dragAxis==='horizontal')targetYaw=originYaw-dx*.105;if(dragAxis==='vertical')targetPitch=Math.max(-85,Math.min(85,originPitch-dy*.105));buttons.forEach(b=>b.classList.remove('active'))});
     viewer.addEventListener('pointerup',()=>{dragging=false;viewer.classList.remove('dragging')});
     viewer.addEventListener('wheel',event=>{event.preventDefault();targetFov=Math.max(42,Math.min(92,targetFov+event.deltaY*.025))},{passive:false});
-    fullScreenButton.onclick=toggleFullScreen;document.addEventListener('fullscreenchange',()=>setFocusView(Boolean(document.fullscreenElement)));document.addEventListener('keydown',event=>{if(event.key==='Escape')setFocusView(false)});autoButton.onclick=()=>setAutoRotate(!autoRotate);document.getElementById('zoomIn').onclick=()=>{targetFov=Math.max(42,targetFov-5)};document.getElementById('zoomOut').onclick=()=>{targetFov=Math.min(92,targetFov+5)};document.getElementById('reset').onclick=()=>{targetFov=70;choose(0)};window.addEventListener('resize',render);
+    openImageButton.onclick=()=>imagePicker.click();imagePicker.addEventListener('change',()=>{openLocalPanorama(imagePicker.files[0]);imagePicker.value=''});fullScreenButton.onclick=toggleFullScreen;document.addEventListener('fullscreenchange',()=>setFocusView(Boolean(document.fullscreenElement)));document.addEventListener('keydown',event=>{if(event.key==='Escape')setFocusView(false)});autoButton.onclick=()=>setAutoRotate(!autoRotate);document.getElementById('zoomIn').onclick=()=>{targetFov=Math.max(42,targetFov-5)};document.getElementById('zoomOut').onclick=()=>{targetFov=Math.min(92,targetFov+5)};document.getElementById('reset').onclick=()=>{targetFov=70;choose(0)};window.addEventListener('resize',render);
     const toggle=document.getElementById('sceneToggle'), drawer=document.getElementById('sceneDrawer'); toggle.onclick=()=>{const open=drawer.classList.toggle('open');toggle.setAttribute('aria-expanded',open)};
     document.querySelectorAll('.scene-item').forEach(item=>item.onclick=()=>{selectScene(+item.dataset.scene);drawer.classList.remove('open');toggle.setAttribute('aria-expanded','false')});
     selectScene(0);
