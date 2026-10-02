@@ -49,6 +49,13 @@
     .hotspot small { display:block; margin-top:2px; color:var(--muted); font-size:.65rem; }
     .auto { height:42px; padding:0 14px; border-radius:24px; font-size:.73rem; font-weight:700; letter-spacing:.04em; }
     .auto.active { color:#101410; border-color:var(--acid); background:var(--acid); }
+    .point-panel { position:absolute; z-index:6; left:50%; bottom:92px; width:min(360px,calc(100vw - 40px)); padding:14px; transform:translateX(-50%); border:1px solid rgba(214,231,37,.8); background:rgba(13,16,18,.92); box-shadow:0 12px 32px rgba(0,0,0,.35); }
+    .point-panel strong { display:block; margin-bottom:4px; font-size:.82rem; }
+    .point-panel p { margin:0 0 10px; color:var(--muted); font-size:.72rem; line-height:1.4; }
+    .point-label { width:100%; height:36px; padding:0 10px; border:1px solid rgba(255,255,255,.26); background:#171b1d; color:var(--ink); font:inherit; font-size:.78rem; }
+    .point-coordinates { display:block; margin-top:10px; color:var(--acid); font-family:Consolas, monospace; font-size:.72rem; }
+    .point-mode { color:#101410; border-color:var(--acid); background:var(--acid); }
+    .viewer.marking { cursor:crosshair; }
     .scene-thumb { width:74px; height:48px; object-fit:cover; }
     .scene-item span { display:block; font-size:.72rem; color:var(--muted); margin-top:4px; }
     @media (max-width:680px) { .topbar { padding-top:18px; } .instruction { display:none; } .bottom { flex-direction:column; align-items:stretch; gap:14px; } .directions { display:grid; grid-template-columns:repeat(2,1fr); max-width:none; } .direction { min-width:0; } .controls { align-self:flex-end; } .scene-pill { bottom:auto; top:76px; } }
@@ -67,9 +74,14 @@
       <h2>Office scenes</h2><p>Choose a point of view to explore the new office.</p>
       <button class="scene-item active" data-scene="0"><img class="scene-thumb" src="assets/360_Render1.png" alt="" /><div>01 — Open workspace<span>Workstations</span></div></button>
       <button class="scene-item" data-scene="1"><img class="scene-thumb" src="assets/360_Render2.png" alt="" /><div>02 — Reception & entry<span>Arrival area</span></div></button>
-      <button class="scene-item" data-scene="2"><img class="scene-thumb" src="assets/360_Render3.png" alt="" /><div>03 — Work lounge<span>Collaboration area</span></div></button>
+      <button class="scene-item" data-scene="2"><img class="scene-thumb" src="assets/360_Render3.png" alt="" /><div>03 — Cozy Corner<span>Relaxed seating</span></div></button>
     </aside>
     <div class="hotspots" id="hotspots" aria-live="polite"></div>
+    <section class="point-panel" id="pointPanel" hidden aria-live="polite">
+      <strong>Point selected</strong><p>Name it, then send me the scene and coordinates below to add it permanently.</p>
+      <input class="point-label" id="pointLabel" maxlength="70" placeholder="Label, e.g. Boardroom entrance" />
+      <output class="point-coordinates" id="pointCoordinates"></output>
+    </section>
     <div class="bottom">
       <nav class="directions" aria-label="Jump to a viewpoint">
         <button class="direction" data-yaw="-105"><strong>West</strong>Lounge</button>
@@ -77,7 +89,7 @@
         <button class="direction" data-yaw="78"><strong>East</strong>Meeting room</button>
         <button class="direction" data-yaw="155"><strong>South</strong>Reception</button>
       </nav>
-      <div class="controls"><button class="auto" id="autoRotate" aria-pressed="false">Auto rotate</button><button class="round" id="zoomOut" aria-label="Zoom out">−</button><button class="round" id="reset" aria-label="Reset view">⌾</button><button class="round" id="zoomIn" aria-label="Zoom in">+</button></div>
+      <div class="controls"><button class="auto" id="markPoint" aria-pressed="false">Mark a point</button><button class="auto" id="autoRotate" aria-pressed="false">Auto rotate</button><button class="round" id="zoomOut" aria-label="Zoom out">−</button><button class="round" id="reset" aria-label="Reset view">⌾</button><button class="round" id="zoomIn" aria-label="Zoom in">+</button></div>
     </div>
   </main>
   <script>
@@ -87,21 +99,21 @@
         {lon:0,lat:-10,label:'Open workspace',detail:'Flexible team desks'},
         {lon:-118,lat:-12,label:'Cozy Corner',detail:'Relaxed seating & informal breaks'},
         {lon:126,lat:-4,label:'Reception & entry',detail:'Enter through this door',target:1},
-        {lon:33,lat:-9,label:'Work lounge',detail:'Go to scene 03',target:2}
+        {lon:33,lat:-9,label:'Cozy Corner',detail:'Go to scene 03',target:2}
       ]},
       {title:'Reception & entry',detail:'Arrival area',src:'assets/360_Render2.png',alt:'360 degree view of the reception and entry',hotspots:[
         {lon:-14,lat:-7,label:'Visitor welcome desk',detail:'Reception point'},
         {lon:0,lat:-8,label:'Open workspace',detail:'Go to scene 01',target:0},
-        {lon:48,lat:-9,label:'Work lounge',detail:'Go to scene 03',target:2}
+        {lon:48,lat:-9,label:'Cozy Corner',detail:'Go to scene 03',target:2}
       ]},
-      {title:'Work lounge',detail:'Collaboration area',src:'assets/360_Render3.png',alt:'360 degree view of the work lounge',hotspots:[
-        {lon:22,lat:-9,label:'Informal lounge',detail:'Relaxed collaboration zone'},
+      {title:'Cozy Corner',detail:'Relaxed seating',src:'assets/360_Render3.png',alt:'360 degree view of the cozy corner',hotspots:[
+        {lon:22,lat:-9,label:'Cozy Corner',detail:'Relaxed collaboration zone'},
         {lon:0,lat:-7,label:'Open workspace',detail:'Go to scene 01',target:0},
         {lon:-45,lat:-9,label:'Reception & entry',detail:'Go to scene 02',target:1}
       ]}
     ];
     let currentScene=0;
-    const buttons=[...document.querySelectorAll('.direction')], hotspotLayer=document.getElementById('hotspots'), autoButton=document.getElementById('autoRotate'); let yaw=0, pitch=0, fov=70, targetYaw=0, targetPitch=0, targetFov=70, autoRotate=false, dragging=false, startX, startY, originYaw, originPitch, dragAxis, animationFrame;
+    const buttons=[...document.querySelectorAll('.direction')], hotspotLayer=document.getElementById('hotspots'), autoButton=document.getElementById('autoRotate'), markButton=document.getElementById('markPoint'), pointPanel=document.getElementById('pointPanel'), pointLabel=document.getElementById('pointLabel'), pointCoordinates=document.getElementById('pointCoordinates'); let yaw=0, pitch=0, fov=70, targetYaw=0, targetPitch=0, targetFov=70, autoRotate=false, pointMode=false, pickedPoint=null, dragging=false, startX, startY, originYaw, originPitch, dragAxis, animationFrame;
     const vertex=`attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}`;
     const fragment=`precision highp float;uniform sampler2D pano;uniform vec2 resolution;uniform float yaw;uniform float pitch;uniform float fov;const float PI=3.141592653589793;void main(){vec2 screen=(gl_FragCoord.xy/resolution-.5)*2.;screen.x*=resolution.x/resolution.y;vec3 ray=normalize(vec3(screen,1./tan(radians(fov)*.5)));float cp=cos(pitch),sp=sin(pitch);ray.yz=mat2(cp,-sp,sp,cp)*ray.yz;float cy=cos(yaw),sy=sin(yaw);ray.xz=mat2(cy,-sy,sy,cy)*ray.xz;float longitude=atan(ray.x,ray.z);float latitude=asin(clamp(ray.y,-1.,1.));vec2 uv=vec2(longitude/(2.*PI)+.5,.5-latitude/PI);gl_FragColor=texture2D(pano,uv);}`;
     function shader(type, source){const s=gl.createShader(type);gl.shaderSource(s,source);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(s));return s}
@@ -116,13 +128,16 @@
     function buildHotspots(){hotspotLayer.replaceChildren(...scenes[currentScene].hotspots.map((spot,index)=>{const isScene=Number.isInteger(spot.target),node=document.createElement(isScene?'button':'div');node.className=`hotspot${isScene?' scene-hotspot':' annotation'}`;node.dataset.hotspot=index;node.innerHTML=`<span class="hotspot-pin">${isScene?'●':'i'}</span><span>${spot.label}<small>${spot.detail}</small></span>`;if(isScene)node.addEventListener('click',()=>selectScene(spot.target));return node}))}
     function positionHotspots(){const scene=scenes[currentScene];if(!scene)return;const yawRad=yaw*Math.PI/180,pitchRad=pitch*Math.PI/180,cy=Math.cos(yawRad),sy=Math.sin(yawRad),cp=Math.cos(pitchRad),sp=Math.sin(pitchRad),aspect=canvas.clientWidth/canvas.clientHeight,focal=1/Math.tan(fov*Math.PI/360);[...hotspotLayer.children].forEach((node,index)=>{const spot=scene.hotspots[index],lon=spot.lon*Math.PI/180,lat=spot.lat*Math.PI/180;let x=Math.sin(lon)*Math.cos(lat),y=Math.sin(lat),z=Math.cos(lon)*Math.cos(lat);const yawX=cy*x-sy*z,yawZ=sy*x+cy*z;x=yawX;z=yawZ;const pitchY=cp*y-sp*z,pitchZ=sp*y+cp*z;y=pitchY;z=pitchZ;const sx=(x/z)*focal/aspect,syy=(y/z)*focal,visible=z>.05&&Math.abs(sx)<1.12&&Math.abs(syy)<1.12;node.hidden=!visible;if(visible){node.style.left=`${(sx+1)*50}%`;node.style.top=`${(1-syy)*50}%`;node.style.transform='translate(-50%,-50%)'}})}
     function setAutoRotate(enabled){autoRotate=enabled;autoButton.classList.toggle('active',enabled);autoButton.setAttribute('aria-pressed',String(enabled));autoButton.textContent=enabled?'Pause rotation':'Auto rotate';if(enabled)buttons.forEach(button=>button.classList.remove('active'))}
+    function setPointMode(enabled){pointMode=enabled;viewer.classList.toggle('marking',enabled);markButton.classList.toggle('point-mode',enabled);markButton.setAttribute('aria-pressed',String(enabled));markButton.textContent=enabled?'Click the panorama':'Mark a point';if(enabled){setAutoRotate(false);pointPanel.hidden=true;pointLabel.value=''}}
+    function showPointCoordinates(){if(!pickedPoint)return;const label=pointLabel.value.trim()||'Untitled point';pointCoordinates.textContent=`${label} · Scene ${String(pickedPoint.scene).padStart(2,'0')} · heading ${pickedPoint.lon}° · elevation ${pickedPoint.lat}°`}
+    function capturePoint(event){const bounds=canvas.getBoundingClientRect(),aspect=bounds.width/bounds.height,focal=1/Math.tan(fov*Math.PI/360),screenX=((event.clientX-bounds.left)/bounds.width*2-1)*aspect,screenY=1-(event.clientY-bounds.top)/bounds.height*2;let x=screenX,y=screenY,z=focal;const length=Math.hypot(x,y,z);x/=length;y/=length;z/=length;const pitchRad=pitch*Math.PI/180,cp=Math.cos(pitchRad),sp=Math.sin(pitchRad),pitchedY=cp*y+sp*z,pitchedZ=-sp*y+cp*z;y=pitchedY;z=pitchedZ;const yawRad=yaw*Math.PI/180,cy=Math.cos(yawRad),sy=Math.sin(yawRad),worldX=cy*x+sy*z,worldZ=-sy*x+cy*z,lon=Math.round(Math.atan2(worldX,worldZ)*180/Math.PI),lat=Math.round(Math.asin(Math.max(-1,Math.min(1,y)))*180/Math.PI);pickedPoint={scene:currentScene+1,lon,lat};showPointCoordinates();pointPanel.hidden=false;setPointMode(false)}
     function selectScene(index){const scene=scenes[index];currentScene=index;setAutoRotate(false);canvas.classList.remove('ready');fallback.removeAttribute('aria-hidden');fallback.src=scene.src;fallback.alt=scene.alt;source.src=scene.src;document.getElementById('sceneName').textContent=scene.title;document.getElementById('sceneNumber').textContent=String(index+1).padStart(2,'0');document.querySelectorAll('.scene-item').forEach(item=>item.classList.toggle('active',+item.dataset.scene===index));yaw=targetYaw=0;pitch=targetPitch=0;fov=targetFov=70;choose(0);buildHotspots()}
     buttons.forEach(button=>button.addEventListener('click',()=>choose(button.dataset.yaw)));
-    viewer.addEventListener('pointerdown',event=>{if(event.target.closest('button'))return;setAutoRotate(false);const bounds=viewer.getBoundingClientRect(),edge=Math.min(event.clientX-bounds.left,bounds.right-event.clientX);dragging=true;dragAxis=edge<bounds.width*.18?'horizontal':null;viewer.classList.add('dragging');viewer.setPointerCapture(event.pointerId);startX=event.clientX;startY=event.clientY;originYaw=targetYaw;originPitch=targetPitch});
+    viewer.addEventListener('pointerdown',event=>{if(event.target.closest('button'))return;if(pointMode){capturePoint(event);return}setAutoRotate(false);const bounds=viewer.getBoundingClientRect(),edge=Math.min(event.clientX-bounds.left,bounds.right-event.clientX);dragging=true;dragAxis=edge<bounds.width*.18?'horizontal':null;viewer.classList.add('dragging');viewer.setPointerCapture(event.pointerId);startX=event.clientX;startY=event.clientY;originYaw=targetYaw;originPitch=targetPitch});
     viewer.addEventListener('pointermove',event=>{if(!dragging)return;const dx=event.clientX-startX,dy=event.clientY-startY;if(!dragAxis&&Math.hypot(dx,dy)>7)dragAxis=Math.abs(dx)>=Math.abs(dy)?'horizontal':'vertical';if(dragAxis==='horizontal')targetYaw=originYaw-dx*.105;if(dragAxis==='vertical')targetPitch=Math.max(-85,Math.min(85,originPitch-dy*.105));buttons.forEach(b=>b.classList.remove('active'))});
     viewer.addEventListener('pointerup',()=>{dragging=false;viewer.classList.remove('dragging')});
     viewer.addEventListener('wheel',event=>{event.preventDefault();targetFov=Math.max(42,Math.min(92,targetFov+event.deltaY*.025))},{passive:false});
-    autoButton.onclick=()=>setAutoRotate(!autoRotate);document.getElementById('zoomIn').onclick=()=>{targetFov=Math.max(42,targetFov-5)};document.getElementById('zoomOut').onclick=()=>{targetFov=Math.min(92,targetFov+5)};document.getElementById('reset').onclick=()=>{targetFov=70;choose(0)};window.addEventListener('resize',render);
+    pointLabel.addEventListener('input',showPointCoordinates);markButton.onclick=()=>setPointMode(!pointMode);autoButton.onclick=()=>setAutoRotate(!autoRotate);document.getElementById('zoomIn').onclick=()=>{targetFov=Math.max(42,targetFov-5)};document.getElementById('zoomOut').onclick=()=>{targetFov=Math.min(92,targetFov+5)};document.getElementById('reset').onclick=()=>{targetFov=70;choose(0)};window.addEventListener('resize',render);
     const toggle=document.getElementById('sceneToggle'), drawer=document.getElementById('sceneDrawer'); toggle.onclick=()=>{const open=drawer.classList.toggle('open');toggle.setAttribute('aria-expanded',open)};
     document.querySelectorAll('.scene-item').forEach(item=>item.onclick=()=>{selectScene(+item.dataset.scene);drawer.classList.remove('open');toggle.setAttribute('aria-expanded','false')});
     selectScene(0);
